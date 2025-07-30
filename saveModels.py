@@ -1,3 +1,4 @@
+import os
 import pickle
 from sklearn.ensemble import RandomForestClassifier, AdaBoostClassifier
 from sklearn.svm import SVC
@@ -8,13 +9,17 @@ from sklearn.neural_network import MLPClassifier  # scikit-learn'in ANN modeli
 from sklearn.tree import DecisionTreeClassifier
 from sklearn.neighbors import KNeighborsClassifier
 from xgboost import XGBClassifier
-# Özellikleri ve etiketleri yükle
-with open("features.pkl", "rb") as f:
+
+# verileri yükle
+with open("features/features.pkl", "rb") as f:
     X_train, y_train, X_test, y_test = pickle.load(f)
 
-# Etiketleri sayısal değerlere dönüştür
+#Etiketleri sayısal değerlere dönüştür
 encoder = LabelEncoder()
 y_train_enc = encoder.fit_transform(y_train)
+
+# "models/" klasörü yoksa oluştur
+os.makedirs("models", exist_ok=True)
 
 # Sınıflandırıcılar
 models = {
@@ -33,6 +38,9 @@ models = {
 for filename, model in models.items():
     print(f"{filename} eğitiliyor...")
     model.fit(X_train, y_train_enc)
-    with open(filename, "wb") as f:
+
+    model_path = os.path.join("models", filename)
+    with open(model_path, "wb") as f:
         pickle.dump((model, encoder), f)
-    print(f"{filename} başarıyla kaydedildi.")
+
+    print(f"{filename} başarıyla 'models/' klasörüne kaydedildi.")

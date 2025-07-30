@@ -4,7 +4,7 @@ import pickle
 import matplotlib.pyplot as plt
 from sklearn.metrics import roc_curve, auc, RocCurveDisplay
 from sklearn.preprocessing import label_binarize
-from featureExtraction import extract_features
+from featureDefini import extract_features
 
 # Test verisini yükleme
 def load_data(directory):
@@ -25,15 +25,15 @@ X_test, y_test = load_data(test_dir)
 
 # Model dosyaları
 model_files = [
-    "random_forest.pkl",
-    "logistic_regression.pkl",
-    "naive_bayes.pkl",
-    "svm.pkl",
-    "adaboost.pkl",
-    "ann.pkl",
-    "decision_tree.pkl",
-    "knn.pkl",
-    "xgboost.pkl"
+    "models/random_forest.pkl",
+    "models/logistic_regression.pkl",
+    "models/naive_bayes.pkl",
+    "models/svm.pkl",
+    "models/adaboost.pkl",
+    "models/ann.pkl",
+    "models/decision_tree.pkl",
+    "models/knn.pkl",
+    "models/xgboost.pkl"
 ]
 
 # ROC eğrisi çizimi

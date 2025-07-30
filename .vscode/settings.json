@@ -1,4 +1,6 @@
 {
     "breadcrumbs.symbolSortOrder": "type",
-    "scm.defaultViewSortKey": "path"
+    "scm.defaultViewSortKey": "path",
+    "python-envs.defaultEnvManager": "ms-python.python:system",
+    "python-envs.pythonProjects": []
 }

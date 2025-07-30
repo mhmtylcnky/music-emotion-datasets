@@ -1,12 +1,13 @@
 import os
 import numpy as np
 import pickle
-from featureExtraction import extract_features
+from featureDefini import extract_features
 
 # Veri klasörleri
 train_dir = "Audio_files/train"
 test_dir = "Audio_files/test"
 
+# Özellik çıkarım fonksiyonu
 def load_and_extract(directory):
     features, labels = [], []
     for label in os.listdir(directory):
@@ -23,8 +24,11 @@ def load_and_extract(directory):
 X_train, y_train = load_and_extract(train_dir)
 X_test, y_test = load_and_extract(test_dir)
 
-# Kaydet
-with open("features.pkl", "wb") as f:
+# "features" klasörü yoksa oluştur
+os.makedirs("features", exist_ok=True)
+
+# Pickle dosyasını kaydet
+with open("features/features.pkl", "wb") as f:
     pickle.dump((X_train, y_train, X_test, y_test), f)
 
-print("Özellik çıkarımı tamamlandı ve features.pkl dosyasına kaydedildi.")
+print("Özellik çıkarımı tamamlandı ve features/features.pkl dosyasına kaydedildi.")
