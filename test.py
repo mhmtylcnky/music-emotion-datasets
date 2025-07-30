@@ -7,6 +7,11 @@ from featureDefini import extract_features
 # Dosya yolları
 test_dir = "Audio_files/test"
 
+# Sonuçların kaydedileceği klasör ve dosya
+results_dir = "models"
+os.makedirs(results_dir, exist_ok=True)
+results_file = os.path.join(results_dir, "all_models_results.txt")
+
 def load_data(directory):
     features, labels = [], []
     for label in os.listdir(directory):
@@ -35,15 +40,30 @@ model_files = [
     "models/xgboost.pkl"
 ]
 
-# Her modeli test et
-for model_file in model_files:
-    with open(model_file, "rb") as f:
-        model, encoder = pickle.load(f)
+with open(results_file, "w") as f:
+    for model_file in model_files:
+        with open(model_file, "rb") as model_f:
+            model, encoder = pickle.load(model_f)
 
-    # Test etiketlerini encode et
-    y_test_enc = encoder.transform(y_test)
-    y_pred = model.predict(X_test)
+        y_test_enc = encoder.transform(y_test)
+        y_pred = model.predict(X_test)
 
-    print(f"\n--- {model_file.replace('.pkl', '').replace('_', ' ').title()} ---")
-    print("Accuracy:", np.mean(y_pred == y_test_enc))
-    print(classification_report(y_test_enc, y_pred, target_names=encoder.classes_))
+        accuracy = np.mean(y_pred == y_test_enc)
+        report = classification_report(y_test_enc, y_pred, target_names=encoder.classes_)
+
+        model_name = os.path.splitext(os.path.basename(model_file))[0]
+
+        header = f"\n--- {model_name.replace('_', ' ').title()} ---\n"
+        summary = f"Accuracy: {accuracy:.4f}\n"
+
+        print(header)
+        print(summary)
+        print(report)
+
+        # Dosyaya yaz
+        f.write(header)
+        f.write(summary)
+        f.write(report)
+        f.write("\n" + "="*60 + "\n")
+
+print(f"\nTüm modellerin sonuçları '{results_file}' dosyasına kaydedildi.")

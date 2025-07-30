@@ -1,17 +1,22 @@
 import os
-import numpy as np
 import pickle
+import numpy as np
 import pandas as pd
-from sklearn.inspection import permutation_importance
-from sklearn.feature_selection import mutual_info_classif
-import matplotlib.pyplot as plt
-import seaborn as sns
+from sklearn.ensemble import RandomForestClassifier, AdaBoostClassifier
+from sklearn.svm import SVC
+from sklearn.linear_model import LogisticRegression
+from sklearn.preprocessing import LabelEncoder
+from sklearn.naive_bayes import GaussianNB
+from sklearn.neural_network import MLPClassifier
+from sklearn.tree import DecisionTreeClassifier
+from sklearn.neighbors import KNeighborsClassifier
+from xgboost import XGBClassifier
+from sklearn.metrics import accuracy_score
 
-# Klasörü oluştur
-results_dir = "feature_importance_results"
-os.makedirs(results_dir, exist_ok=True)
+# Klasör oluştur
+os.makedirs("models_best20", exist_ok=True)
 
-# Özellik isimleri
+# Feature isimleri (tam listeyi buraya ekle)
 feature_names = [
     'MFCC1', 'MFCC2', 'MFCC3', 'MFCC4', 'MFCC5', 'MFCC6', 'MFCC7', 'MFCC8', 'MFCC9', 'MFCC10', 'MFCC11', 'MFCC12', 'MFCC13',  # MFCC'ler
     'Chroma1', 'Chroma2', 'Chroma3', 'Chroma4', 'Chroma5', 'Chroma6', 'Chroma7', 'Chroma8', 'Chroma9', 'Chroma10', 'Chroma11', 'Chroma12',  # Chroma
@@ -22,74 +27,72 @@ feature_names = [
     'SpectralRollOff'  # Spectral Roll-off
 ]
 
-# Veri yükle
+
+# Özellikleri yükle
 with open("features/features.pkl", "rb") as f:
     X_train, y_train, X_test, y_test = pickle.load(f)
 
-# Model dosyaları
+# Etiketleri encode et
+encoder = LabelEncoder()
+y_train_enc = encoder.fit_transform(y_train)
+y_test_enc = encoder.transform(y_test)  # test etiketleri de encode edildi
+
+# Modeller ve dosya isimleri
 model_files = {
-    "RandomForest": "models/random_forest.pkl",
-    "LogisticRegression": "models/logistic_regression.pkl",
-    "NaiveBayes": "models/naive_bayes.pkl",
-    "SVM": "models/svm.pkl",
-    "AdaBoost": "models/adaboost.pkl",
-    "ANN": "models/ann.pkl",
-    "DecisionTree": "models/decision_tree.pkl",
-    "KNN": "models/knn.pkl",
-    "XGBoost": "models/xgboost.pkl"
+    "random_forest.pkl": RandomForestClassifier(n_estimators=100, random_state=42),
+    "logistic_regression.pkl": LogisticRegression(max_iter=1000),
+    "naive_bayes.pkl": GaussianNB(),
+    "svm.pkl": SVC(probability=True),
+    "adaboost.pkl": AdaBoostClassifier(n_estimators=100, random_state=42),
+    "ann.pkl": MLPClassifier(hidden_layer_sizes=(128, 64), max_iter=300, random_state=42),
+    "decision_tree.pkl": DecisionTreeClassifier(random_state=42),
+    "knn.pkl": KNeighborsClassifier(n_neighbors=5),
+    "xgboost.pkl": XGBClassifier(use_label_encoder=False, eval_metric="logloss", random_state=42)
 }
 
-# Özellik önemi hesaplama
-def calculate_importance(model, model_name):
-    if hasattr(model, 'feature_importances_'):
-        importances = model.feature_importances_
-        method = "Built-in"
-    elif hasattr(model, 'coef_'):
-        importances = np.abs(model.coef_).flatten()
-        method = "Coefficient"
-    else:
-        print(f"{model_name}: mutual_info_classif yöntemi kullanılıyor...")
-        importances = mutual_info_classif(X_train, y_train, discrete_features=False)
-        method = "Mutual Info"
+# Test doğruluklarını tutacak liste
+accuracy_results = []
 
-    importance_df = pd.DataFrame({
-        'Feature': feature_names,
-        'Importance': importances
-    }).sort_values(by='Importance', ascending=False)
+# Her model için
+for filename, model in model_files.items():
+    print(f"\n{filename} için best 20 özellik alınıyor ve model eğitiliyor...")
 
-    return importance_df, method
+    fi_path = f"feature_importance_results/{filename.replace('.pkl', '')}_feature_importance.csv"
+    if not os.path.exists(fi_path):
+        print(f"{fi_path} bulunamadı, atlanıyor.")
+        continue
 
-# Grafik çizme
-def plot_top_features(importance_df, model_name, method_used, top_n=20):
-    top_features = importance_df.head(top_n)
-    
-    plt.figure(figsize=(10, 6))
-    sns.barplot(x='Importance', y='Feature', data=top_features, palette='viridis')
-    plt.title(f"{model_name} – Top {top_n} Features ({method_used})")
-    plt.xlabel("Önem Skoru")
-    plt.ylabel("Özellik")
-    plt.tight_layout()
-    
-    # Grafik kaydı
-    plt.savefig(os.path.join(results_dir, f"{model_name}_top{top_n}_features.png"))
-    plt.close()
+    importance_df = pd.read_csv(fi_path)
+    best_20_features = importance_df["Feature"].head(20).tolist()
 
-# Ana döngü: tüm modeller için
-for model_name, file_name in model_files.items():
     try:
-        with open(file_name, 'rb') as f:
-            model, _ = pickle.load(f)
+        indices = [feature_names.index(f) for f in best_20_features]
+    except ValueError as e:
+        print(f"Özellik bulunamadı hatası: {e}")
+        continue
 
-        importance_df, method_used = calculate_importance(model, model_name)
+    X_train_selected = X_train[:, indices]
+    X_test_selected = X_test[:, indices]
 
-        # CSV çıktısı
-        csv_path = os.path.join(results_dir, f"{model_name}_feature_importance.csv")
-        importance_df.to_csv(csv_path, index=False)
+    model.fit(X_train_selected, y_train_enc)
 
-        # Grafik çıktısı
-        plot_top_features(importance_df, model_name, method_used, top_n=20)
+    # Tahmin ve doğruluk
+    y_pred = model.predict(X_test_selected)
+    acc = accuracy_score(y_test_enc, y_pred)
+    print(f"{filename} test doğruluğu: {acc:.4f}")
 
-        print(f"{model_name} için sonuçlar '{results_dir}/' klasörüne kaydedildi.")
+    accuracy_results.append({
+        "Model": filename.replace(".pkl", ""),
+        "Test Accuracy": acc
+    })
 
-    except Exception as e:
-        print(f"{model_name} için hata oluştu: {e}")
+    # Model kaydet
+    save_path = f"models_best20/{filename}"
+    with open(save_path, "wb") as f:
+        pickle.dump((model, encoder), f)
+    print(f"{filename} başarıyla kaydedildi.")
+
+# Sonuçları CSV’ye kaydet
+results_df = pd.DataFrame(accuracy_results)
+results_df.to_csv("models_best20/accuracy_report.csv", index=False)
+print("\nTest doğrulukları 'models_best20/accuracy_report.csv' dosyasına kaydedildi.")

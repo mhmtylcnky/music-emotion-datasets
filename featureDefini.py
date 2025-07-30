@@ -27,9 +27,9 @@ def extract_features(file_path):
         zcr = librosa.feature.zero_crossing_rate(y)
         features.extend(np.mean(zcr, axis=1))  # ZCR'nin ortalamasını ekliyoruz
 
-        # Mel Spectrogram
-        mel_spectrogram = librosa.feature.melspectrogram(y=y, sr=sr, n_mels=128)
-        features.extend(np.mean(mel_spectrogram, axis=1))  # Mel Spectrogram'ın ortalamasını ekliyoruz
+        # # Mel Spectrogram
+        # mel_spectrogram = librosa.feature.melspectrogram(y=y, sr=sr, n_mels=128)
+        # features.extend(np.mean(mel_spectrogram, axis=1))  # Mel Spectrogram'ın ortalamasını ekliyoruz
 
         # Root Mean Square Energy (RMSE)
         rmse = librosa.feature.rms(y=y)
